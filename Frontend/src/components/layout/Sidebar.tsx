@@ -22,7 +22,6 @@ import {
   Users,
   Calendar,
   Building2,
-  DollarSign,
   IndianRupee,
   UserCheck,
   Briefcase,
@@ -136,7 +135,7 @@ export const Sidebar = () => {
         { label: "Goals", href: "/goals", icon: Briefcase },
         { label: "Settings ", href: "/settings", icon: Settings },
       ]
-      
+
 
   const isActiveLink = (href) => location.pathname === href
 

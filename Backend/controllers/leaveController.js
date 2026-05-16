@@ -1,5 +1,5 @@
-import Leave from '../models/Leave.js';
-import Employee from '../models/Employee.js';
+import Leave from "../models/Leave.js";
+import Employee from "../models/Employee.js";
 
 // Create a new leave request (employee)
 export const createLeave = async (req, res) => {
@@ -7,9 +7,16 @@ export const createLeave = async (req, res) => {
     const userId = req.user?._id || req.user?.id;
     const { type, startDate, endDate, reason } = req.body;
     if (!type || !startDate || !endDate || !reason) {
-      return res.status(400).json({ status: false, message: 'All fields are required.' });
+      return res
+        .status(400)
+        .json({ status: false, message: "All fields are required." });
     }
-    const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+    const days =
+      type === "half_day"
+        ? 0.5
+        : Math.ceil(
+            (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24),
+          ) + 1;
     const leave = new Leave({
       employee: userId,
       type,
@@ -17,77 +24,124 @@ export const createLeave = async (req, res) => {
       endDate,
       days,
       reason,
-      status: 'pending',
+      status: "pending",
     });
     await leave.save();
     const populated = await leave.populate([
-      // include profileImage so frontend can show persisted avatars
-      { path: 'employee', select: 'name employeeId profileImage' },
-      { path: 'manager', select: 'name' }
+      // include profileImage and leaveBalance so frontend can display remaining balance
+      { path: "employee", select: "name employeeId profileImage leaveBalance" },
+      { path: "manager", select: "name" },
     ]);
-    return res.status(201).json({ status: true, message: 'Leave request submitted.', data: populated });
+    return res
+      .status(201)
+      .json({
+        status: true,
+        message: "Leave request submitted.",
+        data: populated,
+      });
   } catch (err) {
-    return res.status(500).json({ status: false, message: 'Failed to submit leave request', error: err.message });
+    return res
+      .status(500)
+      .json({
+        status: false,
+        message: "Failed to submit leave request",
+        error: err.message,
+      });
   }
 };
 
 // List all leave requests (HR) or my leave requests (employee)
 export const listLeaves = async (req, res) => {
   try {
-    const isHR = req.user?.role === 'hr';
+    const isHR = req.user?.role === "hr";
     let leaves;
     if (isHR) {
       leaves = await Leave.find()
-        // include profileImage so frontend can use the persisted image URL
-        .populate('employee', 'name employeeId profileImage')
-        .populate('manager', 'name')
+        // include profileImage and leave balance so frontend can display remaining balance
+        .populate("employee", "name employeeId profileImage leaveBalance")
+        .populate("manager", "name")
         .sort({ createdAt: -1 });
     } else {
       leaves = await Leave.find({ employee: req.user?._id || req.user?.id })
-        .populate('employee', 'name employeeId profileImage')
-        .populate('manager', 'name')
+        .populate("employee", "name employeeId profileImage leaveBalance")
+        .populate("manager", "name")
         .sort({ createdAt: -1 });
     }
     return res.status(200).json({ status: true, data: leaves });
   } catch (err) {
-    return res.status(500).json({ status: false, message: 'Failed to fetch leave requests', error: err.message });
+    return res
+      .status(500)
+      .json({
+        status: false,
+        message: "Failed to fetch leave requests",
+        error: err.message,
+      });
   }
 };
 
 // Approve or reject a leave request (HR)
 export const reviewLeave = async (req, res) => {
   try {
-    if (req.user?.role !== 'hr') return res.status(403).json({ status: false, message: 'Forbidden' });
+    if (req.user?.role !== "hr")
+      return res.status(403).json({ status: false, message: "Forbidden" });
     const { id } = req.params;
     const { status, comments } = req.body;
-    if (!['approved', 'rejected'].includes(status)) {
-      return res.status(400).json({ status: false, message: 'Invalid status' });
+    if (!["approved", "rejected"].includes(status)) {
+      return res.status(400).json({ status: false, message: "Invalid status" });
     }
     const leave = await Leave.findById(id);
-    if (!leave) return res.status(404).json({ status: false, message: 'Leave request not found' });
+    if (!leave)
+      return res
+        .status(404)
+        .json({ status: false, message: "Leave request not found" });
+    const previousStatus = leave.status;
     leave.status = status;
-    leave.comments = comments || '';
+    leave.comments = comments || "";
     leave.approvalDate = new Date();
     leave.manager = req.user?._id || req.user?.id;
     await leave.save();
-    const populated = await leave.populate([
-      { path: 'employee', select: 'name employeeId profileImage' },
-      { path: 'manager', select: 'name' }
-    ]);
-    // Update employee status when leave is approved/rejected
+
+    // Deduct leave balance when a leave is approved.
     try {
-      if (status === 'approved') {
-        await Employee.findByIdAndUpdate(leave.employee, { status: 'on_leave' });
-      } else if (status === 'rejected') {
-        await Employee.findByIdAndUpdate(leave.employee, { status: 'active' });
+      const employee = await Employee.findById(leave.employee);
+      if (employee) {
+        if (status === "approved" && previousStatus !== "approved") {
+          if (employee.leaveBalance - leave.days < 0) {
+            return res
+              .status(400)
+              .json({ status: false, message: "Insufficient leave balance" });
+          }
+          employee.leaveBalance -= leave.days;
+          employee.status = "on_leave";
+          await employee.save();
+        } else if (status === "rejected" && previousStatus === "approved") {
+          employee.leaveBalance += leave.days;
+          employee.status = "active";
+          await employee.save();
+        }
       }
     } catch (e) {
-      // Log but don't fail the request
-      console.error('Failed to update employee status after leave review', e);
+      console.error(
+        "Failed to update employee leave balance after leave review",
+        e,
+      );
     }
-    return res.status(200).json({ status: true, message: `Leave ${status}`, data: populated });
+
+    const populated = await leave.populate([
+      { path: "employee", select: "name employeeId profileImage leaveBalance" },
+      { path: "manager", select: "name" },
+    ]);
+    return res
+      .status(200)
+      .json({ status: true, message: `Leave ${status}`, data: populated });
   } catch (err) {
-    return res.status(500).json({ status: false, message: 'Failed to review leave', error: err.message });
+    return res
+      .status(500)
+      .json({
+        status: false,
+        message: "Failed to review leave",
+        error: err.message,
+      });
   }
 };
 
@@ -97,21 +151,42 @@ export const updateLeave = async (req, res) => {
     const userId = req.user?._id || req.user?.id;
     const { id } = req.params;
     const { type, startDate, endDate, reason } = req.body;
-    const leave = await Leave.findOne({ _id: id, employee: userId, status: 'pending' });
-    if (!leave) return res.status(404).json({ status: false, message: 'Leave not found or not editable' });
+    const leave = await Leave.findOne({
+      _id: id,
+      employee: userId,
+      status: "pending",
+    });
+    if (!leave)
+      return res
+        .status(404)
+        .json({ status: false, message: "Leave not found or not editable" });
     if (type) leave.type = type;
     if (startDate) leave.startDate = startDate;
     if (endDate) leave.endDate = endDate;
     if (reason) leave.reason = reason;
-    leave.days = Math.ceil((new Date(leave.endDate) - new Date(leave.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+    leave.days =
+      leave.type === "half_day"
+        ? 0.5
+        : Math.ceil(
+            (new Date(leave.endDate) - new Date(leave.startDate)) /
+              (1000 * 60 * 60 * 24),
+          ) + 1;
     await leave.save();
     const populated = await leave.populate([
-      { path: 'employee', select: 'name employeeId profileImage' },
-      { path: 'manager', select: 'name' }
+      { path: "employee", select: "name employeeId profileImage leaveBalance" },
+      { path: "manager", select: "name" },
     ]);
-    return res.status(200).json({ status: true, message: 'Leave updated', data: populated });
+    return res
+      .status(200)
+      .json({ status: true, message: "Leave updated", data: populated });
   } catch (err) {
-    return res.status(500).json({ status: false, message: 'Failed to update leave', error: err.message });
+    return res
+      .status(500)
+      .json({
+        status: false,
+        message: "Failed to update leave",
+        error: err.message,
+      });
   }
 };
 
@@ -120,10 +195,23 @@ export const deleteLeave = async (req, res) => {
   try {
     const userId = req.user?._id || req.user?.id;
     const { id } = req.params;
-    const leave = await Leave.findOneAndDelete({ _id: id, employee: userId, status: 'pending' });
-    if (!leave) return res.status(404).json({ status: false, message: 'Leave not found or not deletable' });
-    return res.status(200).json({ status: true, message: 'Leave deleted' });
+    const leave = await Leave.findOneAndDelete({
+      _id: id,
+      employee: userId,
+      status: "pending",
+    });
+    if (!leave)
+      return res
+        .status(404)
+        .json({ status: false, message: "Leave not found or not deletable" });
+    return res.status(200).json({ status: true, message: "Leave deleted" });
   } catch (err) {
-    return res.status(500).json({ status: false, message: 'Failed to delete leave', error: err.message });
+    return res
+      .status(500)
+      .json({
+        status: false,
+        message: "Failed to delete leave",
+        error: err.message,
+      });
   }
 };

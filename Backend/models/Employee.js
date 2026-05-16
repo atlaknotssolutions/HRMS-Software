@@ -24,17 +24,21 @@ const EmployeeSchema = new mongoose.Schema(
     address: { type: String },
     bio: { type: String },
     skills: { type: String },
-  // Employment Info
-  position: { type: String },
-  department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
+    // Employment Info
+    position: { type: String },
+    department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
     employeeId: { type: String },
     manager: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
     startDate: Date,
     endDate: Date,
     status: {
       type: String,
-      enum: ["active", "inactive", "terminated"],
+      enum: ["active", "inactive", "terminated", "on_leave"],
       default: "active",
+    },
+    leaveBalance: {
+      type: Number,
+      default: 4,
     },
     salary: { type: Number },
     payType: {
@@ -44,12 +48,12 @@ const EmployeeSchema = new mongoose.Schema(
     },
     emergencyContact: { type: String },
     emergencyPhone: { type: String },
-    resume: { 
+    resume: {
       name: String,
       type: String,
       url: String,
       uploadDate: { type: Date, default: Date.now },
-     },
+    },
 
     // Education & Certifications
     education: [
@@ -91,7 +95,7 @@ const EmployeeSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export default mongoose.model("Employee", EmployeeSchema);

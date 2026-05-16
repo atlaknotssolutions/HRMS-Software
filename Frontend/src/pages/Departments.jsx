@@ -12,7 +12,8 @@ import { Textarea } from '../components/ui/textarea';
 import axios from 'axios';
 import {
   Building2, Plus, Edit, Trash2, Users, DollarSign, 
-  TrendingUp, Search, MoreHorizontal
+  TrendingUp, Search, MoreHorizontal,
+  IndianRupee
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 const API_URL = import.meta.env.VITE_API_URL;
@@ -277,7 +278,7 @@ const Departments = () => {
                   type="number"
                   value={newDepartment.budget}
                   onChange={(e) => setNewDepartment({ ...newDepartment, budget: e.target.value })}
-                  placeholder="Budget in USD"
+                  placeholder="Budget in Indian Rupees"
                 />
               </div>
             </div>
@@ -330,11 +331,11 @@ const Departments = () => {
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-4 h-4 text-warning" />
+                  <IndianRupee className="w-4 h-4 text-warning" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Budget</p>
-                  <p className="text-xl font-bold">${(totalBudget / 1000000).toFixed(1)}M</p>
+                  <p className="text-xl font-bold">₹{(totalBudget / 1000000).toFixed(1)}M</p>
                 </div>
               </div>
             </CardContent>
@@ -421,14 +422,15 @@ const Departments = () => {
                 <div className="space-y-1">
                   <p className="text-muted-foreground">Avg Salary</p>
                   <p className="font-semibold flex items-center">
-                    <DollarSign className="w-4 h-4 mr-1" />
-                    ${(department.averageSalary / 1000).toFixed(0)}k
+                    <IndianRupee className="w-4 h-4 mr-1" />
+                    ₹{department.averageSalary.toLocaleString()}
                   </p>
                 </div>
                 <div className="space-y-1 col-span-2">
                   <p className="text-muted-foreground">Annual Budget</p>
                   <p className="font-semibold text-lg text-primary">
-                    ${(department.budget / 1000000).toFixed(1)}M
+                    <IndianRupee className="w-4 h-4 mr-1" />
+                    ₹{(department.budget / 1000000).toFixed(1)}M
                   </p>
                 </div>
               </div>

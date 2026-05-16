@@ -151,6 +151,11 @@ export const createEmployee = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    const parsedLeaveBalance = Number(req.body.leaveBalance);
+    const leaveBalanceValue = Number.isFinite(parsedLeaveBalance)
+      ? parsedLeaveBalance
+      : 4;
+
     const user = new Employee({
       name,
       email,
@@ -161,7 +166,7 @@ export const createEmployee = async (req, res) => {
       position,
       address,
       status: status || "active",
-      leaveBalance: 4,
+      leaveBalance: leaveBalanceValue,
       employeeId,
       profileImage: avatar,
       startDate: joinDate,

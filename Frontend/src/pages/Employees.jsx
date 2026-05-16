@@ -740,6 +740,7 @@ const Employees = () => {
     departmentId: "",
     position: "",
     salary: "",
+    leaveBalance: "4",
     address: "",
     joinDate: new Date().toISOString().split("T")[0],
   });
@@ -788,6 +789,9 @@ const Employees = () => {
         departmentId: newEmployee.departmentId,
         position: newEmployee.position,
         salary: newEmployee.salary ? Number(newEmployee.salary) : undefined,
+        leaveBalance: newEmployee.leaveBalance
+          ? Number(newEmployee.leaveBalance)
+          : undefined,
         address: newEmployee.address,
         joinDate: newEmployee.joinDate,
         status: "active",
@@ -809,6 +813,7 @@ const Employees = () => {
         departmentId: "",
         position: "",
         salary: "",
+        leaveBalance: "4",
         address: "",
         joinDate: new Date().toISOString().split("T")[0],
       });
@@ -1043,6 +1048,24 @@ const Employees = () => {
                       setNewEmployee({ ...newEmployee, salary: e.target.value })
                     }
                     placeholder="Annual salary"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="leaveBalance">Leave Balance</Label>
+                  <Input
+                    id="leaveBalance"
+                    type="number"
+                    min="0"
+                    value={newEmployee.leaveBalance}
+                    onChange={(e) =>
+                      setNewEmployee({
+                        ...newEmployee,
+                        leaveBalance: e.target.value,
+                      })
+                    }
+                    placeholder="Enter total leave days"
                   />
                 </div>
               </div>

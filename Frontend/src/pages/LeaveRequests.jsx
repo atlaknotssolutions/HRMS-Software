@@ -2633,11 +2633,12 @@ const LeaveRequests = () => {
 
     try {
       const payload = {
-        type: toBackendType(newLeave.leaveType),
+        type: newLeave.isHalfDay
+          ? "half_day"
+          : toBackendType(newLeave.leaveType),
         startDate: newLeave.startDate,
         endDate: newLeave.endDate,
         reason: newLeave.reason,
-        isHalfDay: newLeave.isHalfDay,
       };
 
       await axios.post(`${API_BASE}/api/leave`, payload, {

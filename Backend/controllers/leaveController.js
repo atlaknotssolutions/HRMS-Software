@@ -74,6 +74,17 @@ export const reviewLeave = async (req, res) => {
       { path: 'employee', select: 'name employeeId profileImage' },
       { path: 'manager', select: 'name' }
     ]);
+    // Update employee status when leave is approved/rejected
+    try {
+      if (status === 'approved') {
+        await Employee.findByIdAndUpdate(leave.employee, { status: 'on_leave' });
+      } else if (status === 'rejected') {
+        await Employee.findByIdAndUpdate(leave.employee, { status: 'active' });
+      }
+    } catch (e) {
+      // Log but don't fail the request
+      console.error('Failed to update employee status after leave review', e);
+    }
     return res.status(200).json({ status: true, message: `Leave ${status}`, data: populated });
   } catch (err) {
     return res.status(500).json({ status: false, message: 'Failed to review leave', error: err.message });

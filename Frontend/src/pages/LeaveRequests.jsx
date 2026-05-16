@@ -2455,11 +2455,9 @@ const LeaveRequests = () => {
     "Personal Leave",
     "Maternity Leave",
     "Paternity Leave",
-    "Bereavement Leave",
     "Casual Leave",
     "Earned Leave",
-    "Study Leave",
-    "Marriage Leave",
+    "Study Leave"
   ];
 
   const toBackendType = (label) => {
@@ -2469,11 +2467,11 @@ const LeaveRequests = () => {
       "Personal Leave": "personal",
       "Maternity Leave": "maternity",
       "Paternity Leave": "paternity",
-      "Bereavement Leave": "bereavement",
+      
       "Casual Leave": "casual",
       "Earned Leave": "earned",
       "Study Leave": "study",
-      "Marriage Leave": "marriage",
+      
     };
     return map[label] || "personal";
   };
@@ -2485,11 +2483,11 @@ const LeaveRequests = () => {
       personal: "Personal Leave",
       maternity: "Maternity Leave",
       paternity: "Paternity Leave",
-      bereavement: "Bereavement Leave",
+     
       casual: "Casual Leave",
       earned: "Earned Leave",
       study: "Study Leave",
-      marriage: "Marriage Leave",
+      
     };
     return map[type] || type;
   };
